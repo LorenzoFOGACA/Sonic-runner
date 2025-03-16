@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonic Runner</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #87CEEB;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 300px;
+            background-image: url('fundo.gif'); /* GIF animado */
+            background-size: cover;
+            background-position: center;
+            border-bottom: 3px solid #654321;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #sonic {
+            width: 50px;
+            height: 50px;
+            background-image: url('sonic.gif'); /* Sonic correndo */
+            background-size: cover;
+            position: absolute;
+            bottom: 10px;
+            left: 50px;
+            display: none; /* Só aparece após iniciar o jogo */
+        }
+        .spike {
+            width: 40px;
+            height: 40px;
+            background-image: url('espinhos.png'); /* Espinhos */
+            background-size: cover;
+            position: absolute;
+            bottom: 10px;
+            right: -50px;
+        }
+        #score {
+            font-size: 20px;
+            margin-top: 10px;
+            display: none; /* Só aparece após iniciar o jogo */
+        }
+        #start-message {
+            position: absolute;
+            font-size: 24px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sonic Runner</h1>
+    <p id="score">Pontuação: 0</p>
+
+    <div id="game-container">
+        <div id="sonic"></div>
+        <div id="start-message">Toque para iniciar</div>
+    </div>
+
+    <script>
+        const sonic = document.getElementById("sonic");
+        const gameContainer = document.getElementById("game-container");
+        const scoreDisplay = document.getElementById("score");
+        const startMessage = document.getElementById("start-message");
+
+        let isJumping = false;
+        let gameOver = false;
+        let gameStarted = false;
+        let score = 0;
+        let speed = 3;
+
+        function startGame() {
+            if (gameStarted) return;
+
+            gameStarted = true;
+            startMessage.style.display = "none"; // Esconde a mensagem de início
+            sonic.style.display = "block"; // Mostra o Sonic
+            scoreDisplay.style.display = "block"; // Mostra o placar
+
+            createSpike(); // Começa os obstáculos
+        }
+
+        function jump() {
+            if (isJumping || gameOver || !gameStarted) return;
+
+            isJumping = true;
+            let jumpHeight = 0;
+            let upInterval = setInterval(() => {
+                if (jumpHeight >= 100) {
+                    clearInterval(upInterval);
+                    let downInterval = setInterval(() => {
+                        if (jumpHeight <= 0) {
+                            clearInterval(downInterval);
+                            isJumping = false;
+                        }
+                        jumpHeight -= 5;
+                        sonic.style.bottom = `${jumpHeight + 10}px`;
+                    }, 20);
+                }
+                jumpHeight += 5;
+                sonic.style.bottom = `${jumpHeight + 10}px`;
+            }, 20);
+        }
+
+        function createSpike() {
+            if (gameOver) return;
+
+            let spike = document.createElement("div");
+            spike.classList.add("spike");
+            gameContainer.appendChild(spike);
+
+            let spikePosition = gameContainer.clientWidth;
+            spike.style.left = `${spikePosition}px`;
+
+            let moveSpike = setInterval(() => {
+                if (gameOver) {
+                    clearInterval(moveSpike);
+                    return;
+                }
+
+                spikePosition -= speed;
+                spike.style.left = `${spikePosition}px`;
+
+                let sonicRect = sonic.getBoundingClientRect();
+                let spikeRect = spike.getBoundingClientRect();
+
+                let sonicHitbox = {
+                    left: sonicRect.left + 10,
+                    right: sonicRect.right - 10,
+                    top: sonicRect.top + 5,
+                    bottom: sonicRect.bottom - 5
+                };
+
+                if (
+                    sonicHitbox.left < spikeRect.right &&
+                    sonicHitbox.right > spikeRect.left &&
+                    sonicHitbox.bottom > spikeRect.top &&
+                    !isJumping
+                ) {
+                    gameOver = true;
+                    alert("Você perdeu! Pontuação: " + score);
+                    location.reload();
+                }
+
+                if (spikePosition < -40) {
+                    clearInterval(moveSpike);
+                    spike.remove();
+                    score++;
+                    scoreDisplay.textContent = "Pontuação: " + score;
+                    
+                    if (score % 5 === 0) {
+                        speed += 0.5;
+                    }
+                }
+            }, 20);
+
+            setTimeout(createSpike, Math.random() * 2000 + 1500);
+        }
+
+        document.addEventListener("keydown", (event) => {
+            if (event.code === "Space") {
+                if (!gameStarted) {
+                    startGame();
+                } else {
+                    jump();
+                }
+            }
+        });
+
+        document.addEventListener("touchstart", () => {
+            if (!gameStarted) {
+                startGame();
+            } else {
+                jump();
+            }
+        });
+    </script>
+
+</body>
+</html>
